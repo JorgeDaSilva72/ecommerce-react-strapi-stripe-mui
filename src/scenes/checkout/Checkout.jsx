@@ -7,6 +7,11 @@ import { shades } from "../../theme";
 
 import Shipping from "./Shipping";
 import Payment from "./Payment";
+import { loadStripe } from "@stripe/stripe-js";
+
+const stripePromise = loadStripe(
+  "pk_test_51LlaRRLN9nxRuHB7pAU87ZN8MXURARAoG3B3G39ZVcH9IrMYP8RJSIlsaJTadi7H4IW2S4jEmyuXOMDQU1FsR1Nz00koeU2g87"
+);
 
 const Checkout = () => {
   const [activeStep, setActiveStep] = useState(0);
@@ -31,7 +36,27 @@ const Checkout = () => {
     actions.setTouched({});
   };
 
-  async function makePayment(values) {}
+  async function makePayment(values) {
+    const stripe = await stripePromise;
+    const requestBody = {
+      userName: [values.firstName, values.lastName].join(" "),
+      email: values.email,
+      products: cart.map(({ id, count }) => ({
+        id,
+        count,
+      })),
+    };
+
+    const response = await fetch("http://localhost:1337/api/orders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(requestBody),
+    });
+    const session = await response.json();
+    await stripe.redirectToCheckout({
+      sessionId: session.id,
+    });
+  }
 
   return (
     <Box width="80%" m="100px auto">
